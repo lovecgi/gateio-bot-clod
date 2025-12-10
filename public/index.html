@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crypto Trading Bot - Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <style>
+    .gradient-bg { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); }
+    .card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); }
+    .profit { color: #10b981; }
+    .loss { color: #ef4444; }
+  </style>
+</head>
+<body class="gradient-bg min-h-screen text-white">
+  <!-- Navigation -->
+  <nav class="bg-gray-800 border-b border-gray-700 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center space-x-4">
+          <i class="fas fa-chart-line text-2xl text-blue-400"></i>
+          <span class="text-xl font-bold">Crypto Trading Bot</span>
+        </div>
+        <div class="flex space-x-4">
+          <a href="/" class="px-3 py-2 rounded-md text-sm font-medium bg-gray-900 text-white">Dashboard</a>
+          <a href="/multi-coin-dashboard.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Multi-Coin</a>
+          <a href="/analytics.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Analytics</a>
+          <a href="/backtest.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Backtest</a>
+          <a href="/advanced-orders.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Advanced Orders</a>
+          <a href="/settings.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Settings</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-7xl mx-auto px-4 py-8">
+    <!-- Status Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <!-- Balance Card -->
+      <div class="card rounded-xl p-6 border border-gray-700">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-gray-400 text-sm">Balance (USDT)</p>
+            <p class="text-2xl font-bold mt-1" id="balance">--</p>
+          </div>
+          <div class="bg-blue-500/20 p-3 rounded-lg">
+            <i class="fas fa-wallet text-blue-400 text-xl"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Current Price Card -->
+      <div class="card rounded-xl p-6 border border-gray-700">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-gray-400 text-sm" id="symbol-label">BTC/USDT</p>
+            <p class="text-2xl font-bold mt-1" id="current-price">--</p>
+          </div>
+          <div class="bg-yellow-500/20 p-3 rounded-lg">
+            <i class="fab fa-bitcoin text-yellow-400 text-xl"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Total PnL Card -->
+      <div class="card rounded-xl p-6 border border-gray-700">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-gray-400 text-sm">Total PnL</p>
+            <p class="text-2xl font-bold mt-1" id="total-pnl">--</p>
+          </div>
+          <div class="bg-green-500/20 p-3 rounded-lg">
+            <i class="fas fa-chart-bar text-green-400 text-xl"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Win Rate Card -->
+      <div class="card rounded-xl p-6 border border-gray-700">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-gray-400 text-sm">Win Rate</p>
+            <p class="text-2xl font-bold mt-1" id="win-rate">--</p>
+          </div>
+          <div class="bg-purple-500/20 p-3 rounded-lg">
+            <i class="fas fa-percentage text-purple-400 text-xl"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bot Control & Status -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <!-- Bot Control -->
+      <div class="card rounded-xl p-6 border border-gray-700">
+        <h3 class="text-lg font-semibold mb-4">Bot Control</h3>
+        <div class="flex items-center mb-4">
+          <span class="text-gray-400 mr-3">Status:</span>
+          <span id="bot-status" class="px-3 py-1 rounded-full text-sm bg-red-500/20 text-red-400">Stopped</span>
+        </div>
+        <div class="flex items-center mb-4">
+          <span class="text-gray-400 mr-3">Strategy:</span>
+          <span id="bot-strategy" class="text-white">--</span>
+        </div>
+        <div class="flex space-x-3">
+          <button id="start-btn" onclick="startBot()" class="flex-1 bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition">
+            <i class="fas fa-play mr-2"></i>Start
+          </button>
+          <button id="stop-btn" onclick="stopBot()" class="flex-1 bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition">
+            <i class="fas fa-stop mr-2"></i>Stop
+          </button>
+        </div>
+      </div>
+
+      <!-- Current Position -->
+      <div class="card rounded-xl p-6 border border-gray-700 col-span-2">
+        <h3 class="text-lg font-semibold mb-4">Current Position</h3>
+        <div id="position-container">
+          <div id="no-position" class="text-center py-8 text-gray-400">
+            <i class="fas fa-inbox text-4xl mb-3"></i>
+            <p>No active position</p>
+          </div>
+          <div id="position-details" class="hidden">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <p class="text-gray-400 text-sm">Side</p>
+                <p id="position-side" class="text-lg font-semibold">--</p>
+              </div>
+              <div>
+                <p class="text-gray-400 text-sm">Entry Price</p>
+                <p id="position-entry" class="text-lg font-semibold">--</p>
+              </div>
+              <div>
+                <p class="text-gray-400 text-sm">Amount</p>
+                <p id="position-amount" class="text-lg font-semibold">--</p>
+              </div>
+              <div>
+                <p class="text-gray-400 text-sm">Unrealized PnL</p>
+                <p id="position-pnl" class="text-lg font-semibold">--</p>
+              </div>
+            </div>
+            <button onclick="closePosition()" class="mt-4 bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition">
+              <i class="fas fa-times mr-2"></i>Close Position
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Trades -->
+    <div class="card rounded-xl p-6 border border-gray-700">
+      <h3 class="text-lg font-semibold mb-4">Recent Trades</h3>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead>
+            <tr class="text-left text-gray-400 text-sm">
+              <th class="pb-3">Time</th>
+              <th class="pb-3">Symbol</th>
+              <th class="pb-3">Side</th>
+              <th class="pb-3">Amount</th>
+              <th class="pb-3">Price</th>
+              <th class="pb-3">PnL</th>
+              <th class="pb-3">Strategy</th>
+            </tr>
+          </thead>
+          <tbody id="trades-table">
+            <tr>
+              <td colspan="7" class="text-center py-8 text-gray-400">Loading...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

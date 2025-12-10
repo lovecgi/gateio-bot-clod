@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analytics - Crypto Trading Bot</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <style>
+    .gradient-bg { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); }
+    .card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); }
+    .profit { color: #10b981; }
+    .loss { color: #ef4444; }
+  </style>
+</head>
+<body class="gradient-bg min-h-screen text-white">
+  <!-- Navigation -->
+  <nav class="bg-gray-800 border-b border-gray-700 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center space-x-4">
+          <i class="fas fa-chart-line text-2xl text-blue-400"></i>
+          <span class="text-xl font-bold">Crypto Trading Bot</span>
+        </div>
+        <div class="flex space-x-4">
+          <a href="/" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Dashboard</a>
+          <a href="/multi-coin-dashboard.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Multi-Coin</a>
+          <a href="/analytics.html" class="px-3 py-2 rounded-md text-sm font-medium bg-gray-900 text-white">Analytics</a>
+          <a href="/backtest.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Backtest</a>
+          <a href="/advanced-orders.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Advanced Orders</a>
+          <a href="/settings.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Settings</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-7xl mx-auto px-4 py-8">
+    <!-- Performance Summary -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+      <div class="card rounded-xl p-6 border border-gray-700">
+        <p class="text-gray-400 text-sm">Total Trades</p>
+        <p class="text-2xl font-bold mt-1" id="total-trades">0</p>
+      </div>
+      <div class="card rounded-xl p-6 border border-gray-700">
+        <p class="text-gray-400 text-sm">Win Rate</p>
+        <p class="text-2xl font-bold mt-1" id="win-rate">0%</p>
+      </div>
+      <div class="card rounded-xl p-6 border border-gray-700">
+        <p class="text-gray-400 text-sm">Total PnL</p>
+        <p class="text-2xl font-bold mt-1" id="total-pnl">$0.00</p>
+      </div>
+      <div class="card rounded-xl p-6 border border-gray-700">
+        <p class="text-gray-400 text-sm">Profit Factor</p>
+        <p class="text-2xl font-bold mt-1" id="profit-factor">0</p>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <!-- Cumulative PnL Chart -->
+      <div class="card rounded-xl p-6 border border-gray-700">
+        <h3 class="text-lg font-semibold mb-4">Cumulative PnL</h3>
+        <canvas id="pnl-chart" height="200"></canvas>
+      </div>
+
+      <!-- Win/Loss Distribution -->
+      <div class="card rounded-xl p-6 border border-gray-700">
+        <h3 class="text-lg font-semibold mb-4">Win/Loss Distribution</h3>
+        <canvas id="winloss-chart" height="200"></canvas>
+      </div>
+    </div>
+
+    <!-- Performance by Coin/Strategy -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- By Coin -->
+      <div class="card rounded-xl p-6 border border-gray-700">
+        <h3 class="text-lg font-semibold mb-4">Performance by Coin</h3>
+        <div id="coin-performance" class="space-y-3">
+          <p class="text-gray-400 text-center py-4">Loading...</p>
+        </div>
+      </div>
+
+      <!-- By Strategy -->
+      <div class="card rounded-xl p-6 border border-gray-700">
+        <h3 class="text-lg font-semibold mb-4">Performance by Strategy</h3>
+        <div id="strategy-performance" class="space-y-3">
+          <p class="text-gray-400 text-center py-4">Loading...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = '/api';
+    let pnlChart = null;
+    let winLossChart = null;
+
+    document.addEventListener('DOMContentLoaded', loadAnalytics);
+
+    async function loadAnalytics() {
+      await Promise.all([
+        loadPerformance(),
+        loadCumulativePnl(),
+        loadPerformanceByCoin(),
+        loadPerformanceByStrategy()
+      ]);
+    }
+
+    async function loadPerformance() {
+      try {
+        const response = await axios.get(`${API_BASE}/performance`);
+        const stats = response.data;
+
+        document.getElementById('total-trades').textContent = stats.totalTrades || 0;
+        document.getElementById('win-rate').textContent = `${stats.winRate || 0}%`;
+
+        const totalPnl = parseFloat(stats.totalPnl) || 0;
+        const pnlEl = document.getElementById('total-pnl');
+        pnlEl.textContent = `$${totalPnl.toFixed(2)}`;
+        pnlEl.className = `text-2xl font-bold mt-1 ${totalPnl >= 0 ? 'profit' : 'loss'}`;
+
+        document.getElementById('profit-factor').textContent = stats.profitFactor || '0';
+
+        // Update win/loss chart
+        updateWinLossChart(stats.winningTrades || 0, stats.losingTrades || 0);
+      } catch (error) {
+        console.error('Error loading performance:', error);
+      }
+    }
+
+    async function loadCumulativePnl() {
+      try {
+        const response = await axios.get(`${API_BASE}/analytics/cumulative-pnl?days=30`);
+        const data = response.data;
+
+        if (data.length === 0) {
+          return;
+        }
+
+        updatePnlChart(data);
+      } catch (error) {
+        console.error('Error loading cumulative PnL:', error);
+      }
+    }
+
+    function updatePnlChart(data) {
+      const ctx = document.getElementById('pnl-chart').getContext('2d');
+
+      if (pnlChart) {
+        pnlChart.destroy();
+      }
+
+      pnlChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: data.map(d => d.date),
+          datasets: [{
+            label: 'Cumulative PnL',
+            data: data.map(d => d.cumulative_pnl),
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            fill: true,
+            tension: 0.4
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(255,255,255,0.1)' },
+              ticks: { color: '#9ca3af' }
+            },
+            y: {
+              grid: { color: 'rgba(255,255,255,0.1)' },
+              ticks: { color: '#9ca3af' }
+            }
+          }
+        }
+      });
+    }
+
+    function updateWinLossChart(wins, losses) {
+      const ctx = document.getElementById('winloss-chart').getContext('2d');
+
+      if (winLossChart) {
+        winLossChart.destroy();
+      }
+
+      winLossChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Wins', 'Losses'],
+          datasets: [{
+            data: [wins, losses],
+            backgroundColor: ['#10b981', '#ef4444'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { color: '#fff' }
+            }
+          }
+        }
+      });
+    }
+
+    async function loadPerformanceByCoin() {
+      try {
+        const response = await axios.get(`${API_BASE}/analytics/performance-by-coin`);
+        const data = response.data;
+
+        const container = document.getElementById('coin-performance');
+
+        if (data.length === 0) {
+          container.innerHTML = '<p class="text-gray-400 text-center py-4">No data</p>';
+          return;
+        }
+
+        container.innerHTML = data.map(coin => {
+          const pnl = parseFloat(coin.total_pnl) || 0;
+          const winRate = coin.total_trades > 0 ? (coin.winning_trades / coin.total_trades * 100).toFixed(1) : 0;
+
+          return `
+            <div class="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
+              <div>
+                <p class="font-semibold">${coin.symbol}</p>
+                <p class="text-sm text-gray-400">${coin.total_trades} trades (${winRate}% win)</p>
+              </div>
+              <p class="${pnl >= 0 ? 'profit' : 'loss'} font-semibold">
+                ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}
+              </p>
+            </div>
+          `;
+        }).join('');
+      } catch (error) {
+        console.error('Error loading coin performance:', error);
+      }
+    }
+
+    async function loadPerformanceByStrategy() {
+      try {
+        const response = await axios.get(`${API_BASE}/analytics/performance-by-strategy`);
+        const data = response.data;
+
+        const container = document.getElementById('strategy-performance');
+
+        if (data.length === 0) {
+          container.innerHTML = '<p class="text-gray-400 text-center py-4">No data</p>';
+          return;
+        }
+
+        container.innerHTML = data.map(strategy => {
+          const pnl = parseFloat(strategy.total_pnl) || 0;
+          const winRate = strategy.total_trades > 0 ? (strategy.winning_trades / strategy.total_trades * 100).toFixed(1) : 0;
+
+          return `
+            <div class="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
+              <div>
+                <p class="font-semibold">${strategy.strategy || 'Unknown'}</p>
+                <p class="text-sm text-gray-400">${strategy.total_trades} trades (${winRate}% win)</p>
+              </div>
+              <p class="${pnl >= 0 ? 'profit' : 'loss'} font-semibold">
+                ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}
+              </p>
+            </div>
+          `;
+        }).join('');
+      } catch (error) {
+        console.error('Error loading strategy performance:', error);
+      }
+    }
+  </script>
+</body>
+</html>

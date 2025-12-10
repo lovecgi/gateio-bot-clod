@@ -1,0 +1,40 @@
+{
+  "name": "crypto-trading-bot",
+  "version": "1.0.0",
+  "description": "Cryptocurrency Leverage Futures Trading Bot for Gate.io",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "pm2:start": "pm2 start ecosystem.config.cjs",
+    "pm2:stop": "pm2 stop ecosystem.config.cjs",
+    "pm2:restart": "pm2 restart ecosystem.config.cjs",
+    "pm2:logs": "pm2 logs crypto-trading-bot"
+  },
+  "keywords": [
+    "cryptocurrency",
+    "trading",
+    "bot",
+    "futures",
+    "leverage",
+    "gate.io",
+    "ccxt"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "ccxt": "^4.5.24",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "sqlite3": "^5.1.7",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

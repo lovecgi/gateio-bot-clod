@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multi-Coin Dashboard - Crypto Trading Bot</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <style>
+    .gradient-bg { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); }
+    .card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); }
+    .profit { color: #10b981; }
+    .loss { color: #ef4444; }
+  </style>
+</head>
+<body class="gradient-bg min-h-screen text-white">
+  <!-- Navigation -->
+  <nav class="bg-gray-800 border-b border-gray-700 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center space-x-4">
+          <i class="fas fa-chart-line text-2xl text-blue-400"></i>
+          <span class="text-xl font-bold">Crypto Trading Bot</span>
+        </div>
+        <div class="flex space-x-4">
+          <a href="/" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Dashboard</a>
+          <a href="/multi-coin-dashboard.html" class="px-3 py-2 rounded-md text-sm font-medium bg-gray-900 text-white">Multi-Coin</a>
+          <a href="/analytics.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Analytics</a>
+          <a href="/backtest.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Backtest</a>
+          <a href="/advanced-orders.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Advanced Orders</a>
+          <a href="/settings.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Settings</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-7xl mx-auto px-4 py-8">
+    <!-- Bot Control -->
+    <div class="card rounded-xl p-6 border border-gray-700 mb-8">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <h2 class="text-xl font-semibold">Multi-Coin Bot</h2>
+          <span id="bot-status" class="px-3 py-1 rounded-full text-sm bg-red-500/20 text-red-400">Stopped</span>
+        </div>
+        <div class="flex space-x-3">
+          <button onclick="startBot()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition">
+            <i class="fas fa-play mr-2"></i>Start
+          </button>
+          <button onclick="stopBot()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition">
+            <i class="fas fa-stop mr-2"></i>Stop
+          </button>
+          <button onclick="closeAllPositions()" class="bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded-lg transition">
+            <i class="fas fa-times-circle mr-2"></i>Close All
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="grid grid-cols-4 gap-4 mt-6">
+        <div class="text-center">
+          <p class="text-gray-400 text-sm">Active Coins</p>
+          <p class="text-2xl font-bold" id="active-coins">0</p>
+        </div>
+        <div class="text-center">
+          <p class="text-gray-400 text-sm">Open Positions</p>
+          <p class="text-2xl font-bold" id="open-positions">0</p>
+        </div>
+        <div class="text-center">
+          <p class="text-gray-400 text-sm">Total PnL</p>
+          <p class="text-2xl font-bold" id="total-pnl">$0.00</p>
+        </div>
+        <div class="text-center">
+          <p class="text-gray-400 text-sm">Win Rate</p>
+          <p class="text-2xl font-bold" id="win-rate">0%</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Coin -->
+    <div class="card rounded-xl p-6 border border-gray-700 mb-8">
+      <h3 class="text-lg font-semibold mb-4">Add Coin</h3>
+      <div class="flex flex-wrap gap-4">
+        <select id="add-symbol" class="bg-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">Select Symbol</option>
+        </select>
+        <select id="add-strategy" class="bg-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="Combined">Combined</option>
+          <option value="RSI">RSI</option>
+          <option value="MACD">MACD</option>
+          <option value="Bollinger">Bollinger</option>
+          <option value="Stochastic">Stochastic</option>
+        </select>
+        <input type="number" id="add-leverage" placeholder="Leverage" value="10" class="bg-gray-700 rounded-lg px-4 py-2 w-24 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <input type="number" id="add-position-size" placeholder="Position Size" value="100" class="bg-gray-700 rounded-lg px-4 py-2 w-32 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <button onclick="addCoin()" class="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg transition">
+          <i class="fas fa-plus mr-2"></i>Add
+        </button>
+      </div>
+    </div>
+
+    <!-- Active Coins Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="coins-grid">
+      <div class="col-span-full text-center py-8 text-gray-400">
+        <i class="fas fa-coins text-4xl mb-3"></i>
+        <p>No coins added yet</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = '/api';
+    let status = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadSymbols();
+      loadStatus();
+      setInterval(loadStatus, 5000);
+    });
+
+    async function loadSymbols() {
+      try {
+        const response = await axios.get(`${API_BASE}/symbols`);
+        const select = document.getElementById('add-symbol');
+        response.data.forEach(symbol => {
+          const option = document.createElement('option');
+          option.value = symbol;
+          option.textContent = symbol;
+          select.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Error loading symbols:', error);
+      }
+    }
+
+    async function loadStatus() {
+      try {
+        const response = await axios.get(`${API_BASE}/multi-coin/status`);
+        status = response.data;
+
+        // Update status badge
+        const statusEl = document.getElementById('bot-status');
+        statusEl.textContent = status.isRunning ? 'Running' : 'Stopped';
+        statusEl.className = status.isRunning
+          ? 'px-3 py-1 rounded-full text-sm bg-green-500/20 text-green-400'
+          : 'px-3 py-1 rounded-full text-sm bg-red-500/20 text-red-400';
+
+        // Update stats
+        document.getElementById('active-coins').textContent = status.coins?.length || 0;
+        document.getElementById('open-positions').textContent = status.activePositions || 0;
+        document.getElementById('total-pnl').textContent = `$${(status.stats?.totalPnl || 0).toFixed(2)}`;
+
+        const totalTrades = status.stats?.totalTrades || 0;
+        const winRate = totalTrades > 0 ? ((status.stats?.winningTrades || 0) / totalTrades * 100).toFixed(1) : 0;
+        document.getElementById('win-rate').textContent = `${winRate}%`;
+
+        // Update coins grid
+        updateCoinsGrid(status.coins || []);
+      } catch (error) {
+        console.error('Error loading status:', error);
+      }
+    }
+
+    function updateCoinsGrid(coins) {
+      const grid = document.getElementById('coins-grid');
+
+      if (coins.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full text-center py-8 text-gray-400">
+            <i class="fas fa-coins text-4xl mb-3"></i>
+            <p>No coins added yet</p>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = coins.map(coin => {
+        const hasPosition = coin.position !== null;
+        const pnl = coin.position?.unrealizedPnl || 0;
+        const pnlClass = pnl >= 0 ? 'profit' : 'loss';
+        const sideClass = coin.position?.side === 'long' ? 'text-green-400' : 'text-red-400';
+
+        return `
+          <div class="card rounded-xl p-6 border border-gray-700">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-semibold">${coin.symbol}</h3>
+              <span class="px-2 py-1 rounded text-xs ${coin.enabled ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}">
+                ${coin.enabled ? 'Active' : 'Disabled'}
+              </span>
+            </div>
+
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between">
+                <span class="text-gray-400">Strategy</span>
+                <span>${coin.strategyName}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-400">Leverage</span>
+                <span>${coin.leverage}x</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-400">Position Size</span>
+                <span>$${coin.positionSize}</span>
+              </div>
+            </div>
+
+            ${hasPosition ? `
+              <div class="mt-4 p-3 bg-gray-800 rounded-lg">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="${sideClass} font-semibold uppercase">${coin.position.side}</span>
+                  <span class="${pnlClass}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}</span>
+                </div>
+                <div class="text-sm text-gray-400">
+                  Entry: $${parseFloat(coin.position.entryPrice).toLocaleString()}
+                </div>
+              </div>
+            ` : `
+              <div class="mt-4 p-3 bg-gray-800 rounded-lg text-center text-gray-400 text-sm">
+                No position
+              </div>
+            `}
+
+            <div class="flex space-x-2 mt-4">
+              ${hasPosition ? `
+                <button onclick="closePosition('${coin.symbol}')" class="flex-1 bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg text-sm transition">
+                  Close
+                </button>
+              ` : ''}
+              <button onclick="removeCoin('${coin.symbol}')" class="flex-1 bg-gray-600 hover:bg-gray-700 px-3 py-2 rounded-lg text-sm transition">
+                Remove
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function startBot() {
+      try {
+        const response = await axios.post(`${API_BASE}/multi-coin/start`);
+        if (response.data.success) {
+          showNotification('Multi-coin bot started', 'success');
+          loadStatus();
+        }
+      } catch (error) {
+        showNotification(error.response?.data?.error || 'Error starting bot', 'error');
+      }
+    }
+
+    async function stopBot() {
+      try {
+        const response = await axios.post(`${API_BASE}/multi-coin/stop`);
+        if (response.data.success) {
+          showNotification('Multi-coin bot stopped', 'success');
+          loadStatus();
+        }
+      } catch (error) {
+        showNotification(error.response?.data?.error || 'Error stopping bot', 'error');
+      }
+    }
+
+    async function addCoin() {
+      const symbol = document.getElementById('add-symbol').value;
+      const strategy = document.getElementById('add-strategy').value;
+      const leverage = document.getElementById('add-leverage').value;
+      const positionSize = document.getElementById('add-position-size').value;
+
+      if (!symbol) {
+        showNotification('Please select a symbol', 'error');
+        return;
+      }
+
+      try {
+        const response = await axios.post(`${API_BASE}/multi-coin/add`, {
+          symbol, strategy, leverage, positionSize
+        });
+        if (response.data.success) {
+          showNotification(`${symbol} added`, 'success');
+          loadStatus();
+        }
+      } catch (error) {
+        showNotification(error.response?.data?.error || 'Error adding coin', 'error');
+      }
+    }
+
+    async function removeCoin(symbol) {
+      if (!confirm(`Remove ${symbol}?`)) return;
+
+      try {
+        const response = await axios.delete(`${API_BASE}/multi-coin/remove/${symbol.replace('/', '-')}`);
+        if (response.data.success) {
+          showNotification(`${symbol} removed`, 'success');
+          loadStatus();
+        }
+      } catch (error) {
+        showNotification(error.response?.data?.error || 'Error removing coin', 'error');
+      }
+    }
+
+    async function closePosition(symbol) {
+      try {
+        const response = await axios.post(`${API_BASE}/positions/${symbol.replace('/', '-')}/close`);
+        if (response.data.success) {
+          showNotification(`Position closed. PnL: $${response.data.pnl?.toFixed(2) || 0}`, 'success');
+          loadStatus();
+        }
+      } catch (error) {
+        showNotification(error.response?.data?.error || 'Error closing position', 'error');
+      }
+    }
+
+    async function closeAllPositions() {
+      if (!confirm('Close all positions?')) return;
+
+      try {
+        const response = await axios.post(`${API_BASE}/positions/close-all`);
+        showNotification('All positions closed', 'success');
+        loadStatus();
+      } catch (error) {
+        showNotification(error.response?.data?.error || 'Error closing positions', 'error');
+      }
+    }
+
+    function showNotification(message, type = 'info') {
+      const colors = { success: 'bg-green-600', error: 'bg-red-600', info: 'bg-blue-600' };
+      const notification = document.createElement('div');
+      notification.className = `fixed bottom-4 right-4 ${colors[type]} px-6 py-3 rounded-lg shadow-lg z-50`;
+      notification.textContent = message;
+      document.body.appendChild(notification);
+      setTimeout(() => notification.remove(), 3000);
+    }
+  </script>
+</body>
+</html>

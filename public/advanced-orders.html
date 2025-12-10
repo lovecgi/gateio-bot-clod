@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advanced Orders - Crypto Trading Bot</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <style>
+    .gradient-bg { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); }
+    .card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); }
+  </style>
+</head>
+<body class="gradient-bg min-h-screen text-white">
+  <!-- Navigation -->
+  <nav class="bg-gray-800 border-b border-gray-700 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center space-x-4">
+          <i class="fas fa-chart-line text-2xl text-blue-400"></i>
+          <span class="text-xl font-bold">Crypto Trading Bot</span>
+        </div>
+        <div class="flex space-x-4">
+          <a href="/" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Dashboard</a>
+          <a href="/multi-coin-dashboard.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Multi-Coin</a>
+          <a href="/analytics.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Analytics</a>
+          <a href="/backtest.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Backtest</a>
+          <a href="/advanced-orders.html" class="px-3 py-2 rounded-md text-sm font-medium bg-gray-900 text-white">Advanced Orders</a>
+          <a href="/settings.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Settings</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-7xl mx-auto px-4 py-8">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <!-- OCO Order -->
+      <div class="card rounded-xl p-6 border border-gray-700">
+        <h3 class="text-lg font-semibold mb-4">
+          <i class="fas fa-exchange-alt mr-2 text-blue-400"></i>OCO Order
+        </h3>
+        <p class="text-gray-400 text-sm mb-4">One-Cancels-Other: Set both stop loss and take profit. When one triggers, the other is cancelled.</p>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm text-gray-400 mb-2">Symbol</label>
+            <select id="oco-symbol" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+              <option value="BTC/USDT">BTC/USDT</option>
+              <option value="ETH/USDT">ETH/USDT</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm text-gray-400 mb-2">Side (Close Position)</label>
+            <select id="oco-side" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+              <option value="sell">Sell (Close Long)</option>
+              <option value="buy">Buy (Close Short)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm text-gray-400 mb-2">Amount</label>
+            <input type="number" id="oco-amount" placeholder="0.001" step="0.001" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm text-gray-400 mb-2">Stop Loss Price</label>
+              <input type="number" id="oco-stop-loss" placeholder="95000" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+            </div>
+            <div>
+              <label class="block text-sm text-gray-400 mb-2">Take Profit Price</label>
+              <input type="number" id="oco-take-profit" placeholder="105000" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+            </div>
+          </div>
+          <button onclick="createOCO()" class="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded-lg transition">
+            Create OCO Order
+          </button>
+        </div>
+      </div>
+
+      <!-- Conditional Order -->
+      <div class="card rounded-xl p-6 border border-gray-700">
+        <h3 class="text-lg font-semibold mb-4">
+          <i class="fas fa-code-branch mr-2 text-purple-400"></i>Conditional Order
+        </h3>
+        <p class="text-gray-400 text-sm mb-4">Place an order when price reaches a specific level.</p>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm text-gray-400 mb-2">Symbol</label>
+            <select id="cond-symbol" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+              <option value="BTC/USDT">BTC/USDT</option>
+              <option value="ETH/USDT">ETH/USDT</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm text-gray-400 mb-2">Condition</label>
+              <select id="cond-condition" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+                <option value="above">Price Above</option>
+                <option value="below">Price Below</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm text-gray-400 mb-2">Trigger Price</label>
+              <input type="number" id="cond-trigger" placeholder="100000" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm text-gray-400 mb-2">Side</label>
+              <select id="cond-side" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+                <option value="buy">Buy</option>
+                <option value="sell">Sell</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm text-gray-400 mb-2">Amount</label>
+              <input type="number" id="cond-amount" placeholder="0.001" step="0.001" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm text-gray-400 mb-2">Order Type</label>
+            <select id="cond-type" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+              <option value="market">Market</option>
+              <option value="limit">Limit</option>
+            </select>
+          </div>
+          <button onclick="createConditional()" class="w-full bg-purple-600 hover:bg-purple-700 py-2 rounded-lg transition">
+            Create Conditional Order
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trailing Stop -->
+    <div class="card rounded-xl p-6 border border-gray-700 mb-8">
+      <h3 class="text-lg font-semibold mb-4">
+        <i class="fas fa-arrows-alt-v mr-2 text-green-400"></i>Trailing Stop
+      </h3>
+      <p class="text-gray-400 text-sm mb-4">Stop loss that follows the price, locking in profits as price moves favorably.</p>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Symbol</label>
+          <select id="trail-symbol" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+            <option value="BTC/USDT">BTC/USDT</option>
+            <option value="ETH/USDT">ETH/USDT</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Position Side</label>
+          <select id="trail-side" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+            <option value="long">Long</option>
+            <option value="short">Short</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Amount</label>
+          <input type="number" id="trail-amount" placeholder="0.001" step="0.001" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Trailing %</label>
+          <input type="number" id="trail-percent" placeholder="1" step="0.1" value="1" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+        </div>
+      </div>
+      <button onclick="createTrailingStop()" class="bg-green-600 hover:bg-green-700 px-6 py-2 rounded-lg transition">
+        Create Trailing Stop
+      </button>
+    </div>
+
+    <!-- Active Orders -->
+    <div class="card rounded-xl p-6 border border-gray-700">
+      <h3 class="text-lg font-semibold mb-4">Active Advanced Orders</h3>
+      <div id="orders-list" class="space-y-3">
+        <p class="text-gray-400 text-center py-4">No active orders</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = '/api';
+
+    document.addEventListener('DOMContentLoaded', loadOrders);
+    setInterval(loadOrders, 5000);
+
+    async function loadOrders() {
+      try {
+        const response = await axios.get(`${API_BASE}/orders/advanced`);
+        const data = response.data;
+
+        const container = document.getElementById('orders-list');
+
+        if (!data.activeOrders || data.activeOrders.length === 0) {
+          container.innerHTML = '<p class="text-gray-400 text-center py-4">No active orders</p>';
+          return;
+        }
+
+        container.innerHTML = data.activeOrders.map(order => `
+          <div class="flex items-center justify-between p-4 bg-gray-800 rounded-lg">
+            <div>
+              <div class="flex items-center space-x-2">
+                <span class="px-2 py-1 rounded text-xs ${getTypeColor(order.type)}">${order.type}</span>
+                <span class="font-semibold">${order.symbol}</span>
+              </div>
+              <p class="text-sm text-gray-400 mt-1">${getOrderDescription(order)}</p>
+            </div>
+            <button onclick="cancelOrder('${order.id}')" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-sm">
+              Cancel
+            </button>
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading orders:', error);
+      }
+    }
+
+    function getTypeColor(type) {
+      const colors = {
+        'OCO': 'bg-blue-500/20 text-blue-400',
+        'CONDITIONAL': 'bg-purple-500/20 text-purple-400',
+        'TRAILING_STOP': 'bg-green-500/20 text-green-400'
+      };
+      return colors[type] || 'bg-gray-500/20 text-gray-400';
+    }
+
+    function getOrderDescription(order) {
+      switch (order.type) {
+        case 'OCO':
+          return `SL: $${order.stopLossPrice} | TP: $${order.takeProfitPrice}`;
+        case 'CONDITIONAL':
+          return `${order.triggerCondition} $${order.triggerPrice} -> ${order.side} ${order.amount}`;
+        case 'TRAILING_STOP':
+          return `${order.trailingPercent}% trailing | Current stop: $${order.currentStopPrice?.toFixed(2)}`;
+        default:
+          return '';
+      }
+    }
+
+    async function createOCO() {
+      const params = {
+        symbol: document.getElementById('oco-symbol').value,
+        side: document.getElementById('oco-side').value,
+        amount: parseFloat(document.getElementById('oco-amount').value),
+        stopLossPrice: parseFloat(document.getElementById('oco-stop-loss').value),
+        takeProfitPrice: parseFloat(document.getElementById('oco-take-profit').value)
+      };
+
+      try {
+        const response = await axios.post(`${API_BASE}/orders/oco`, params);
+        if (response.data.success) {
+          showNotification('OCO order created', 'success');
+          loadOrders();
+        }
+      } catch (error) {
+        showNotification(error.response?.data?.error || 'Failed to create OCO order', 'error');
+      }
+    }
+
+    async function createConditional() {
+      const params = {
+        symbol: document.getElementById('cond-symbol').value,
+        side: document.getElementById('cond-side').value,
+        amount: parseFloat(document.getElementById('cond-amount').value),
+        triggerPrice: parseFloat(document.getElementById('cond-trigger').value),
+        triggerCondition: document.getElementById('cond-condition').value,
+        orderType: document.getElementById('cond-type').value
+      };
+
+      try {
+        const response = await axios.post(`${API_BASE}/orders/conditional`, params);
+        if (response.data.success) {
+          showNotification('Conditional order created', 'success');
+          loadOrders();
+        }
+      } catch (error) {
+        showNotification(error.response?.data?.error || 'Failed to create conditional order', 'error');
+      }
+    }
+
+    async function createTrailingStop() {
+      const params = {
+        symbol: document.getElementById('trail-symbol').value,
+        side: document.getElementById('trail-side').value,
+        amount: parseFloat(document.getElementById('trail-amount').value),
+        trailingPercent: parseFloat(document.getElementById('trail-percent').value)
+      };
+
+      try {
+        const response = await axios.post(`${API_BASE}/orders/trailing-stop`, params);
+        if (response.data.success) {
+          showNotification('Trailing stop created', 'success');
+          loadOrders();
+        }
+      } catch (error) {
+        showNotification(error.response?.data?.error || 'Failed to create trailing stop', 'error');
+      }
+    }
+
+    async function cancelOrder(orderId) {
+      try {
+        const response = await axios.delete(`${API_BASE}/orders/advanced/${orderId}`);
+        if (response.data.success) {
+          showNotification('Order cancelled', 'success');
+          loadOrders();
+        }
+      } catch (error) {
+        showNotification(error.response?.data?.error || 'Failed to cancel order', 'error');
+      }
+    }
+
+    function showNotification(message, type = 'info') {
+      const colors = { success: 'bg-green-600', error: 'bg-red-600', info: 'bg-blue-600' };
+      const notification = document.createElement('div');
+      notification.className = `fixed bottom-4 right-4 ${colors[type]} px-6 py-3 rounded-lg shadow-lg z-50`;
+      notification.textContent = message;
+      document.body.appendChild(notification);
+      setTimeout(() => notification.remove(), 3000);
+    }
+  </script>
+</body>
+</html>

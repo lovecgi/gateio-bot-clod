@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Backtest - Crypto Trading Bot</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <style>
+    .gradient-bg { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); }
+    .card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); }
+    .profit { color: #10b981; }
+    .loss { color: #ef4444; }
+  </style>
+</head>
+<body class="gradient-bg min-h-screen text-white">
+  <!-- Navigation -->
+  <nav class="bg-gray-800 border-b border-gray-700 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center space-x-4">
+          <i class="fas fa-chart-line text-2xl text-blue-400"></i>
+          <span class="text-xl font-bold">Crypto Trading Bot</span>
+        </div>
+        <div class="flex space-x-4">
+          <a href="/" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Dashboard</a>
+          <a href="/multi-coin-dashboard.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Multi-Coin</a>
+          <a href="/analytics.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Analytics</a>
+          <a href="/backtest.html" class="px-3 py-2 rounded-md text-sm font-medium bg-gray-900 text-white">Backtest</a>
+          <a href="/advanced-orders.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Advanced Orders</a>
+          <a href="/settings.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Settings</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-7xl mx-auto px-4 py-8">
+    <!-- Backtest Form -->
+    <div class="card rounded-xl p-6 border border-gray-700 mb-8">
+      <h2 class="text-xl font-semibold mb-6">Run Backtest</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Symbol</label>
+          <select id="bt-symbol" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+            <option value="BTC/USDT">BTC/USDT</option>
+            <option value="ETH/USDT">ETH/USDT</option>
+            <option value="SOL/USDT">SOL/USDT</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Strategy</label>
+          <select id="bt-strategy" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+            <option value="Combined">Combined</option>
+            <option value="RSI">RSI</option>
+            <option value="MACD">MACD</option>
+            <option value="Bollinger">Bollinger</option>
+            <option value="Stochastic">Stochastic</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Timeframe</label>
+          <select id="bt-timeframe" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+            <option value="5m">5 minutes</option>
+            <option value="15m">15 minutes</option>
+            <option value="1h" selected>1 hour</option>
+            <option value="4h">4 hours</option>
+            <option value="1d">1 day</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Initial Balance</label>
+          <input type="number" id="bt-balance" value="10000" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Position Size</label>
+          <input type="number" id="bt-position-size" value="100" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Leverage</label>
+          <input type="number" id="bt-leverage" value="10" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Stop Loss %</label>
+          <input type="number" id="bt-stop-loss" value="2" step="0.1" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Take Profit %</label>
+          <input type="number" id="bt-take-profit" value="4" step="0.1" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+        </div>
+      </div>
+      <div class="flex space-x-4">
+        <button onclick="runBacktest()" class="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg transition">
+          <i class="fas fa-play mr-2"></i>Run Backtest
+        </button>
+        <button onclick="optimizeStrategy()" class="bg-purple-600 hover:bg-purple-700 px-6 py-2 rounded-lg transition">
+          <i class="fas fa-magic mr-2"></i>Optimize
+        </button>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="results-container" class="hidden">
+      <!-- Stats -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+        <div class="card rounded-xl p-6 border border-gray-700">
+          <p class="text-gray-400 text-sm">Total Trades</p>
+          <p class="text-2xl font-bold mt-1" id="result-trades">0</p>
+        </div>
+        <div class="card rounded-xl p-6 border border-gray-700">
+          <p class="text-gray-400 text-sm">Win Rate</p>
+          <p class="text-2xl font-bold mt-1" id="result-winrate">0%</p>
+        </div>
+        <div class="card rounded-xl p-6 border border-gray-700">
+          <p class="text-gray-400 text-sm">Total PnL</p>
+          <p class="text-2xl font-bold mt-1" id="result-pnl">$0</p>
+        </div>
+        <div class="card rounded-xl p-6 border border-gray-700">
+          <p class="text-gray-400 text-sm">Max Drawdown</p>
+          <p class="text-2xl font-bold mt-1 text-red-400" id="result-drawdown">0%</p>
+        </div>
+      </div>
+
+      <!-- Equity Chart -->
+      <div class="card rounded-xl p-6 border border-gray-700 mb-8">
+        <h3 class="text-lg font-semibold mb-4">Equity Curve</h3>
+        <canvas id="equity-chart" height="200"></canvas>
+      </div>
+
+      <!-- Trade History -->
+      <div class="card rounded-xl p-6 border border-gray-700">
+        <h3 class="text-lg font-semibold mb-4">Trade History (Last 50)</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead>
+              <tr class="text-left text-gray-400 text-sm">
+                <th class="pb-3">Entry Time</th>
+                <th class="pb-3">Side</th>
+                <th class="pb-3">Entry Price</th>
+                <th class="pb-3">Exit Price</th>
+                <th class="pb-3">PnL</th>
+                <th class="pb-3">Reason</th>
+              </tr>
+            </thead>
+            <tbody id="trades-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div id="loading" class="hidden text-center py-12">
+      <i class="fas fa-spinner fa-spin text-4xl text-blue-400 mb-4"></i>
+      <p class="text-gray-400">Running backtest...</p>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = '/api';
+    let equityChart = null;
+
+    async function runBacktest() {
+      const params = {
+        symbol: document.getElementById('bt-symbol').value,
+        strategy: document.getElementById('bt-strategy').value,
+        timeframe: document.getElementById('bt-timeframe').value,
+        initialBalance: parseFloat(document.getElementById('bt-balance').value),
+        positionSize: parseFloat(document.getElementById('bt-position-size').value),
+        leverage: parseInt(document.getElementById('bt-leverage').value),
+        stopLossPercent: parseFloat(document.getElementById('bt-stop-loss').value),
+        takeProfitPercent: parseFloat(document.getElementById('bt-take-profit').value)
+      };
+
+      document.getElementById('loading').classList.remove('hidden');
+      document.getElementById('results-container').classList.add('hidden');
+
+      try {
+        const response = await axios.post(`${API_BASE}/backtest/run`, params);
+        const result = response.data;
+
+        if (result.error) {
+          showNotification(result.error, 'error');
+          return;
+        }
+
+        displayResults(result);
+      } catch (error) {
+        showNotification(error.response?.data?.error || 'Backtest failed', 'error');
+      } finally {
+        document.getElementById('loading').classList.add('hidden');
+      }
+    }
+
+    async function optimizeStrategy() {
+      const params = {
+        symbol: document.getElementById('bt-symbol').value,
+        strategy: document.getElementById('bt-strategy').value,
+        timeframe: document.getElementById('bt-timeframe').value,
+        initialBalance: parseFloat(document.getElementById('bt-balance').value)
+      };
+
+      document.getElementById('loading').classList.remove('hidden');
+      document.getElementById('results-container').classList.add('hidden');
+
+      try {
+        const response = await axios.post(`${API_BASE}/backtest/optimize`, params);
+        const result = response.data;
+
+        if (result.error) {
+          showNotification(result.error, 'error');
+          return;
+        }
+
+        if (result.bestResult) {
+          displayResults(result.bestResult);
+          showNotification(`Best parameters found! Win rate: ${result.bestResult.winRate}%`, 'success');
+        }
+      } catch (error) {
+        showNotification(error.response?.data?.error || 'Optimization failed', 'error');
+      } finally {
+        document.getElementById('loading').classList.add('hidden');
+      }
+    }
+
+    function displayResults(result) {
+      document.getElementById('results-container').classList.remove('hidden');
+
+      // Update stats
+      document.getElementById('result-trades').textContent = result.totalTrades;
+      document.getElementById('result-winrate').textContent = `${result.winRate}%`;
+
+      const pnl = parseFloat(result.totalPnl) || 0;
+      const pnlEl = document.getElementById('result-pnl');
+      pnlEl.textContent = `$${pnl.toFixed(2)}`;
+      pnlEl.className = `text-2xl font-bold mt-1 ${pnl >= 0 ? 'profit' : 'loss'}`;
+
+      document.getElementById('result-drawdown').textContent = `${result.maxDrawdownPercent}%`;
+
+      // Update chart
+      if (result.equityCurve) {
+        updateEquityChart(result.equityCurve);
+      }
+
+      // Update trades table
+      if (result.trades) {
+        updateTradesTable(result.trades);
+      }
+    }
+
+    function updateEquityChart(data) {
+      const ctx = document.getElementById('equity-chart').getContext('2d');
+
+      if (equityChart) {
+        equityChart.destroy();
+      }
+
+      // Sample data if too many points
+      const sampledData = data.length > 200 ? sampleArray(data, 200) : data;
+
+      equityChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: sampledData.map((_, i) => i),
+          datasets: [{
+            label: 'Equity',
+            data: sampledData.map(d => d.equity),
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            fill: true,
+            tension: 0.1,
+            pointRadius: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: {
+              display: false
+            },
+            y: {
+              grid: { color: 'rgba(255,255,255,0.1)' },
+              ticks: { color: '#9ca3af' }
+            }
+          }
+        }
+      });
+    }
+
+    function sampleArray(arr, n) {
+      const step = Math.ceil(arr.length / n);
+      return arr.filter((_, i) => i % step === 0);
+    }
+
+    function updateTradesTable(trades) {
+      const tbody = document.getElementById('trades-table');
+
+      tbody.innerHTML = trades.map(trade => {
+        const pnl = parseFloat(trade.pnl) || 0;
+        const pnlClass = pnl >= 0 ? 'profit' : 'loss';
+        const sideClass = trade.side === 'long' ? 'text-green-400' : 'text-red-400';
+
+        return `
+          <tr class="border-t border-gray-700">
+            <td class="py-3 text-sm">${new Date(trade.entryTime).toLocaleString()}</td>
+            <td class="py-3 ${sideClass} uppercase font-semibold">${trade.side}</td>
+            <td class="py-3">$${parseFloat(trade.entryPrice).toLocaleString()}</td>
+            <td class="py-3">$${parseFloat(trade.exitPrice).toLocaleString()}</td>
+            <td class="py-3 ${pnlClass}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}</td>
+            <td class="py-3 text-sm text-gray-400">${trade.exitReason}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function showNotification(message, type = 'info') {
+      const colors = { success: 'bg-green-600', error: 'bg-red-600', info: 'bg-blue-600' };
+      const notification = document.createElement('div');
+      notification.className = `fixed bottom-4 right-4 ${colors[type]} px-6 py-3 rounded-lg shadow-lg z-50`;
+      notification.textContent = message;
+      document.body.appendChild(notification);
+      setTimeout(() => notification.remove(), 3000);
+    }
+  </script>
+</body>
+</html>

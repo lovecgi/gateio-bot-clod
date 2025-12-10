@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings - Crypto Trading Bot</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <style>
+    .gradient-bg { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); }
+    .card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); }
+  </style>
+</head>
+<body class="gradient-bg min-h-screen text-white">
+  <!-- Navigation -->
+  <nav class="bg-gray-800 border-b border-gray-700 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center space-x-4">
+          <i class="fas fa-chart-line text-2xl text-blue-400"></i>
+          <span class="text-xl font-bold">Crypto Trading Bot</span>
+        </div>
+        <div class="flex space-x-4">
+          <a href="/" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Dashboard</a>
+          <a href="/multi-coin-dashboard.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Multi-Coin</a>
+          <a href="/analytics.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Analytics</a>
+          <a href="/backtest.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Backtest</a>
+          <a href="/advanced-orders.html" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700">Advanced Orders</a>
+          <a href="/settings.html" class="px-3 py-2 rounded-md text-sm font-medium bg-gray-900 text-white">Settings</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-4xl mx-auto px-4 py-8">
+    <!-- Trading Settings -->
+    <div class="card rounded-xl p-6 border border-gray-700 mb-6">
+      <h3 class="text-lg font-semibold mb-6">
+        <i class="fas fa-cog mr-2 text-blue-400"></i>Trading Settings
+      </h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Trading Pair</label>
+          <select id="trading-pair" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+            <option value="BTC/USDT">BTC/USDT</option>
+            <option value="ETH/USDT">ETH/USDT</option>
+            <option value="SOL/USDT">SOL/USDT</option>
+            <option value="XRP/USDT">XRP/USDT</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Strategy</label>
+          <select id="strategy" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+            <option value="Combined">Combined</option>
+            <option value="RSI">RSI</option>
+            <option value="MACD">MACD</option>
+            <option value="Bollinger">Bollinger Bands</option>
+            <option value="Stochastic">Stochastic</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Timeframe</label>
+          <select id="timeframe" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+            <option value="1m">1 minute</option>
+            <option value="5m">5 minutes</option>
+            <option value="15m">15 minutes</option>
+            <option value="1h">1 hour</option>
+            <option value="4h">4 hours</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Leverage</label>
+          <input type="number" id="leverage" min="1" max="75" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Position Size (USD)</label>
+          <input type="number" id="position-size" min="1" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Risk Percentage</label>
+          <input type="number" id="risk-percentage" min="0.1" max="10" step="0.1" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+        </div>
+      </div>
+      <button onclick="saveTradingSettings()" class="mt-6 bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg transition">
+        <i class="fas fa-save mr-2"></i>Save Trading Settings
+      </button>
+    </div>
+
+    <!-- Risk Management -->
+    <div class="card rounded-xl p-6 border border-gray-700 mb-6">
+      <h3 class="text-lg font-semibold mb-6">
+        <i class="fas fa-shield-alt mr-2 text-green-400"></i>Risk Management
+      </h3>
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="font-medium">Auto Stop Loss</p>
+            <p class="text-sm text-gray-400">Automatically set stop loss on new positions</p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="auto-stop-loss" class="sr-only peer">
+            <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:bg-green-600 after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+          </label>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm text-gray-400 mb-2">Stop Loss %</label>
+            <input type="number" id="stop-loss-percent" min="0.1" max="50" step="0.1" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+          </div>
+          <div>
+            <label class="block text-sm text-gray-400 mb-2">Take Profit %</label>
+            <input type="number" id="take-profit-percent" min="0.1" max="100" step="0.1" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+          </div>
+        </div>
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="font-medium">Trailing Stop</p>
+            <p class="text-sm text-gray-400">Move stop loss as profit increases</p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="trailing-stop" class="sr-only peer">
+            <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:bg-green-600 after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+          </label>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Trailing Stop %</label>
+          <input type="number" id="trailing-stop-percent" min="0.1" max="10" step="0.1" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Daily Loss Limit (USD)</label>
+          <input type="number" id="daily-loss-limit" min="1" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+        </div>
+      </div>
+      <button onclick="saveRiskSettings()" class="mt-6 bg-green-600 hover:bg-green-700 px-6 py-2 rounded-lg transition">
+        <i class="fas fa-save mr-2"></i>Save Risk Settings
+      </button>
+    </div>
+
+    <!-- Position Sizing -->
+    <div class="card rounded-xl p-6 border border-gray-700 mb-6">
+      <h3 class="text-lg font-semibold mb-6">
+        <i class="fas fa-calculator mr-2 text-purple-400"></i>Position Sizing
+      </h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">Sizing Method</label>
+          <select id="sizing-method" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+            <option value="fixed">Fixed Size</option>
+            <option value="kelly">Kelly Criterion</option>
+            <option value="volatility">Volatility (ATR)</option>
+            <option value="percent_risk">Percent Risk</option>
+          </select>
+        </div>
+        <div id="kelly-options" class="hidden">
+          <label class="block text-sm text-gray-400 mb-2">Kelly Fraction (0.1-1.0)</label>
+          <input type="number" id="kelly-fraction" min="0.1" max="1" step="0.1" value="0.5" class="w-full bg-gray-700 rounded-lg px-4 py-2">
+          <p class="text-xs text-gray-500 mt-1">Lower values are safer. 0.5 = Half-Kelly (recommended)</p>
+        </div>
+      </div>
+      <button onclick="savePositionSizing()" class="mt-6 bg-purple-600 hover:bg-purple-700 px-6 py-2 rounded-lg transition">
+        <i class="fas fa-save mr-2"></i>Save Position Sizing
+      </button>
+    </div>
+
+    <!-- Exchange Info -->
+    <div class="card rounded-xl p-6 border border-gray-700">
+      <h3 class="text-lg font-semibold mb-6">
+        <i class="fas fa-exchange-alt mr-2 text-yellow-400"></i>Exchange Status
+      </h3>
+      <div class="grid grid-cols-2 gap-4 text-sm">
+        <div>
+          <p class="text-gray-400">Exchange</p>
+          <p id="exchange-name" class="font-medium">--</p>
+        </div>
+        <div>
+          <p class="text-gray-400">Mode</p>
+          <p id="exchange-mode" class="font-medium">--</p>
+        </div>
+        <div>
+          <p class="text-gray-400">Status</p>
+          <p id="exchange-status" class="font-medium">--</p>
+        </div>
+        <div>
+          <p class="text-gray-400">Rate Limit</p>
+          <p id="exchange-rate-limit" class="font-medium">--</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/settings.js"></script>
+</body>
+</html>
