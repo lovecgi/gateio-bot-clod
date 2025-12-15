@@ -1,16 +1,21 @@
 {
-  "name": "crypto-trading-bot",
-  "version": "1.0.0",
-  "description": "Cryptocurrency Leverage Futures Trading Bot for Gate.io",
-  "main": "src/server.js",
+  "name": "gateio-futures-trading-bot",
+  "version": "2.0.0",
+  "description": "Gate.io Futures Trading Bot with WebSocket real-time streaming",
+  "main": "trading-bot.js",
   "type": "module",
   "scripts": {
-    "start": "node src/server.js",
+    "start": "node trading-bot.js",
+    "scalping": "node trading-bot.js scalping BTC_USDT",
+    "breakout": "node trading-bot.js breakout BTC_USDT",
+    "grid": "node trading-bot.js grid BTC_USDT",
+    "multi": "node trading-bot.js scalping BTC_USDT ETH_USDT",
+    "server": "node src/server.js",
     "dev": "nodemon src/server.js",
     "pm2:start": "pm2 start ecosystem.config.cjs",
     "pm2:stop": "pm2 stop ecosystem.config.cjs",
     "pm2:restart": "pm2 restart ecosystem.config.cjs",
-    "pm2:logs": "pm2 logs crypto-trading-bot"
+    "pm2:logs": "pm2 logs gateio-trading-bot"
   },
   "keywords": [
     "cryptocurrency",
@@ -19,7 +24,10 @@
     "futures",
     "leverage",
     "gate.io",
-    "ccxt"
+    "websocket",
+    "scalping",
+    "breakout",
+    "grid-trading"
   ],
   "author": "",
   "license": "MIT",
