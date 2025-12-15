@@ -43,7 +43,7 @@ app.get('/', (req, res) => {
 });
 
 // Catch-all for SPA routing
-app.get('*', (req, res) => {
+app.get(/.*/, (req, res) => {
   // Check if it's an API request that wasn't matched
   if (req.path.startsWith('/api')) {
     return res.status(404).json({ error: 'API endpoint not found' });
