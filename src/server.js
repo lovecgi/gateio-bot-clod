@@ -5,12 +5,17 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import apiRoutes from './routes/api.js';
 import exchangeService from './services/exchange.js';
+import { WebSocketServer } from 'ws';
+import http from 'http';
 import database from './models/database.js';
+import gateFuturesWebsocket from './services/gate-futures-websocket.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+const server = http.createServer(app);
+const wss = new WebSocketServer({ server });
 const PORT = process.env.PORT || 3000;
 
 // Middleware
@@ -52,6 +57,23 @@ app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
+// WebSocket handling
+wss.on('connection', (ws) => {
+  console.log('Client connected to WebSocket');
+
+  ws.on('close', () => console.log('Client disconnected'));
+});
+
+// Broadcast Gate.io updates to all clients
+gateFuturesWebsocket.on('ticker', (data) => {
+  const message = JSON.stringify({ type: 'ticker_update', data });
+  wss.clients.forEach(client => {
+    if (client.readyState === 1) {
+      client.send(message);
+    }
+  });
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Server error:', err);
@@ -73,13 +95,19 @@ async function startServer() {
     try {
       await exchangeService.initialize();
       console.log('Exchange connection established');
+
+      // Start Gate.io WebSocket
+      gateFuturesWebsocket.connect();
+      // Subscribe to default pair
+      gateFuturesWebsocket.subscribeTickers([process.env.TRADING_PAIR || 'BTC/USDT']);
+
     } catch (error) {
       console.warn('Exchange initialization failed:', error.message);
       console.warn('Some features may not work until valid API credentials are provided');
     }
 
     // Start server
-    app.listen(PORT, '0.0.0.0', () => {
+    server.listen(PORT, '0.0.0.0', () => {
       console.log(`Server running on http://localhost:${PORT}`);
       console.log('Available endpoints:');
       console.log('  - Dashboard: http://localhost:' + PORT);

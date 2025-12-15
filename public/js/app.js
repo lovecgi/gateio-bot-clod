@@ -9,11 +9,60 @@ let refreshInterval = null;
 document.addEventListener('DOMContentLoaded', () => {
   loadData();
   startAutoRefresh();
+  connectWebSocket();
 });
 
-// Auto refresh every 5 seconds
+// Auto refresh every 5 seconds for non-realtime data
 function startAutoRefresh() {
-  refreshInterval = setInterval(loadData, 5000);
+  refreshInterval = setInterval(() => {
+    loadStatus(); // Keep status updated (active/inactive)
+    // Ticker is now updated via WebSocket
+  }, 5000);
+}
+
+// WebSocket Connection
+function connectWebSocket() {
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${protocol}//${window.location.host}`;
+
+  console.log('Connecting to WebSocket:', wsUrl);
+  const ws = new WebSocket(wsUrl);
+
+  ws.onopen = () => {
+    console.log('WebSocket Connected');
+    showNotification('Real-time connection established', 'success');
+  };
+
+  ws.onmessage = (event) => {
+    try {
+      const message = JSON.parse(event.data);
+      if (message.type === 'ticker_update') {
+        updateTickerUI(message.data);
+      }
+    } catch (error) {
+      console.error('WebSocket message error:', error);
+    }
+  };
+
+  ws.onclose = () => {
+    console.log('WebSocket Disconnected');
+    setTimeout(connectWebSocket, 5000); // Reconnect after 5s
+  };
+}
+
+// Update Ticker UI from WebSocket data
+function updateTickerUI(ticker) {
+  const priceEl = document.getElementById('current-price');
+  if (priceEl) {
+    const price = parseFloat(ticker.last);
+    priceEl.textContent = `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    // Add flash effect for price change
+    priceEl.style.color = ticker.change_percentage >= 0 ? '#4ade80' : '#f87171'; // Green or Red
+    setTimeout(() => {
+      priceEl.style.color = ''; // Reset to default
+    }, 500);
+  }
 }
 
 // Load all data
